@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { getMovieById } from "../api";
 import LoadingPlaceholder from "./LoadingPlaceholder";
 
-const API_KEY = process.env.REACT_APP_OMDB_API_KEY;
-const BASE_URL = "https://www.omdbapi.com/";
-
-export default function MovieDetail() {
+function MovieDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
 
@@ -14,153 +11,184 @@ export default function MovieDetail() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const fav = localStorage.getItem("favorites");
+      return fav ? JSON.parse(fav) : [];
+    } catch {
+      return [];
+    }
+  });
+
   useEffect(() => {
     async function fetchMovie() {
       setLoading(true);
       setError(null);
-      try {
-        const response = await axios.get(BASE_URL, {
-          params: { apikey: API_KEY, i: movieId, plot: "full" },
-        });
-
-        if (response.data.Response === "True") {
-          setMovie(response.data);
-        } else {
-          setError(response.data.Error || "Movie not found.");
-        }
-      } catch (err) {
-        setError("Failed to fetch movie details.");
-      } finally {
-        setLoading(false);
+      const movieData = await getMovieById(movieId);
+      if (movieData) {
+        setMovie(movieData);
+      } else {
+        setError("Movie not found.");
       }
+      setLoading(false);
     }
     fetchMovie();
   }, [movieId]);
+
+  useEffect(() => {
+    localStorage.setItem("favorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = () => {
+    if (!movie) return;
+    const exists = favorites.find((fav) => fav.imdbID === movie.imdbID);
+    if (exists) {
+      setFavorites(favorites.filter((fav) => fav.imdbID !== movie.imdbID));
+    } else {
+      setFavorites([...favorites, movie]);
+    }
+  };
+
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/"); // fallback route
+    }
+  };
 
   if (loading) return <LoadingPlaceholder />;
 
   if (error)
     return (
-      <section className="error-message">
+      <section
+        className="error-message"
+        style={{ padding: "2rem", textAlign: "center", color: "#f44336", fontWeight: "600" }}
+      >
         <p>{error}</p>
-        <button onClick={() => navigate(-1)} className="back-btn" aria-label="Go back">
+        <button
+          onClick={goBack}
+          className="back-btn"
+          aria-label="Go back"
+          style={{
+            marginTop: "1rem",
+            padding: "0.5rem 1rem",
+            background: "transparent",
+            border: "2px solid #82c91e",
+            borderRadius: "6px",
+            color: "#82c91e",
+            cursor: "pointer",
+            fontSize: "1rem",
+            transition: "background-color 0.3s, color 0.3s",
+          }}
+        >
           &larr; Back
         </button>
-        <style>{`
-          .error-message {
-            padding: 2rem;
-            text-align: center;
-            color: #f44336;
-            font-weight: 600;
-          }
-          .back-btn {
-            margin-top: 1rem;
-            padding: 0.5rem 1rem;
-            background: transparent;
-            border: 2px solid #82c91e;
-            border-radius: 6px;
-            color: #82c91e;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s, color 0.3s;
-          }
-          .back-btn:hover {
-            background-color: #82c91e;
-            color: #121212;
-          }
-        `}</style>
       </section>
     );
 
+  const isFavorite = favorites.some((fav) => fav.imdbID === movie.imdbID);
+
   return (
-    <section className="movie-detail">
-      <button onClick={() => navigate(-1)} className="back-btn" aria-label="Go back">
+    <section
+      className="movie-detail"
+      style={{
+        maxWidth: 900,
+        margin: "2rem auto",
+        padding: "1rem 1.5rem",
+        borderRadius: 12,
+        backgroundColor: "#1f1f1f",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.6)",
+        color: "#e0e0e0",
+        fontFamily: "'Poppins', sans-serif",
+      }}
+    >
+      <button
+        onClick={goBack}
+        className="back-btn"
+        aria-label="Go back"
+        style={{
+          marginBottom: "1rem",
+          padding: "0.5rem 1rem",
+          border: "none",
+          background: "transparent",
+          color: "#82c91e",
+          cursor: "pointer",
+          fontSize: "1.1rem",
+          borderRadius: 6,
+          transition: "color 0.3s ease",
+        }}
+      >
         &larr; Back
       </button>
-      <div className="movie-detail-content">
+      <button
+        onClick={toggleFavorite}
+        className={`favorite-detail-btn ${isFavorite ? "favorited" : ""}`}
+        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        type="button"
+        style={{
+          background: isFavorite ? "#82c91e" : "transparent",
+          border: "2px solid #82c91e",
+          color: isFavorite ? "#121212" : "#82c91e",
+          padding: "0.5rem 1rem",
+          borderRadius: 6,
+          fontSize: "1rem",
+          cursor: "pointer",
+          marginBottom: "1rem",
+          userSelect: "none",
+          transition: "background-color 0.3s, color 0.3s",
+        }}
+      >
+        {isFavorite ? "★ Remove from Favorites" : "☆ Add to Favorites"}
+      </button>
+      <div
+        className="movie-detail-content"
+        style={{
+          display: "flex",
+          gap: "1.5rem",
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+        }}
+      >
         <img
-          src={movie.Poster !== "N/A" ? movie.Poster : "https://placehold.co/300x450?text=No+Image"}
+          src={movie.Poster !== "N/A" ? movie.Poster : "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/8745b824-7d05-46e3-9e2e-4638d64dbf50.png"}
           alt={`${movie.Title} poster`}
-          className="movie-poster"
+          style={{
+            flexShrink: 0,
+            width: 300,
+            borderRadius: 12,
+            objectFit: "cover",
+            boxShadow: "0 4px 8px rgba(0,0,0,0.7)",
+            margin: "0 auto",
+            display: "block",
+          }}
         />
-        <div className="movie-info">
-          <h2>{movie.Title} ({movie.Year})</h2>
-          <p><strong>Genre:</strong> {movie.Genre}</p>
-          <p><strong>Director:</strong> {movie.Director}</p>
-          <p><strong>Actors:</strong> {movie.Actors}</p>
-          <p><strong>Plot:</strong> {movie.Plot}</p>
-          <p><strong>IMDB Rating:</strong> {movie.imdbRating}</p>
-          <p><strong>Runtime:</strong> {movie.Runtime}</p>
+        <div className="movie-info" style={{ flexGrow: 1, minWidth: 220 }}>
+          <h2 style={{ marginTop: 0, color: "#82c91e", fontWeight: 700 }}>
+            {movie.Title} ({movie.Year})
+          </h2>
+          <p style={{ margin: "8px 0", lineHeight: 1.5 }}>
+            <strong>Genre:</strong> {movie.Genre}
+          </p>
+          <p style={{ margin: "8px 0", lineHeight: 1.5 }}>
+            <strong>Director:</strong> {movie.Director}
+          </p>
+          <p style={{ margin: "8px 0", lineHeight: 1.5 }}>
+            <strong>Actors:</strong> {movie.Actors}
+          </p>
+          <p style={{ margin: "8px 0", lineHeight: 1.5 }}>
+            <strong>Plot:</strong> {movie.Plot}
+          </p>
+          <p style={{ margin: "8px 0", lineHeight: 1.5 }}>
+            <strong>IMDB Rating:</strong> {movie.imdbRating}
+          </p>
+          <p style={{ margin: "8px 0", lineHeight: 1.5 }}>
+            <strong>Runtime:</strong> {movie.Runtime}
+          </p>
         </div>
       </div>
-      <style>{`
-        .movie-detail {
-          max-width: 900px;
-          margin: 2rem auto;
-          padding: 1rem 1.5rem;
-          border-radius: 12px;
-          background-color: #1f1f1f;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-          color: #e0e0e0;
-          font-family: 'Poppins', sans-serif;
-        }
-        .back-btn {
-          margin-bottom: 1rem;
-          padding: 0.5rem 1rem;
-          border: none;
-          background: transparent;
-          color: #82c91e;
-          cursor: pointer;
-          font-size: 1.1rem;
-          border-radius: 6px;
-          transition: color 0.3s ease;
-        }
-        .back-btn:hover {
-          text-decoration: underline;
-        }
-        .movie-detail-content {
-          display: flex;
-          gap: 1.5rem;
-          flex-wrap: wrap;
-          align-items: flex-start;
-        }
-        .movie-poster {
-            flex-shrink: 0;
-            width: 300px;
-            border-radius: 12px;
-            object-fit: cover;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.7);
-            margin: 0 auto; /* This centers it horizontally */
-            display: block;
-        }
-        .movie-info {
-          flex-grow: 1;
-          min-width: 220px;
-        }
-        .movie-info h2 {
-          margin-top: 0;
-          color: #82c91e;
-          font-weight: 700;
-        }
-        .movie-info p {
-          margin: 8px 0;
-          line-height: 1.5;
-        }
-
-        @media (max-width: 768px) {
-          .movie-detail-content {
-            flex-direction: column;
-            align-items: center;
-          }
-          .movie-poster {
-            width: 100%;
-            max-width: 300px;
-          }
-          .movie-info {
-            min-width: 100%;
-          }
-        }
-      `}</style>
     </section>
   );
 }
+
+export default MovieDetail;

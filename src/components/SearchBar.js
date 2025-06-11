@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import debounce from 'lodash.debounce';
-import PropTypes from 'prop-types';
+import React, { useState, useCallback } from "react";
+import debounce from "lodash.debounce";
+import PropTypes from "prop-types";
 
 function SearchBar({ onSearch }) {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
 
   const debouncedSearch = useCallback(
     debounce((value) => {
@@ -12,38 +12,41 @@ function SearchBar({ onSearch }) {
     [onSearch]
   );
 
-  const handleInputChange = e => {
+  const handleInputChange = (e) => {
     setInput(e.target.value);
     debouncedSearch(e.target.value);
   };
 
   const handleClear = () => {
-    setInput('');
-    onSearch('');
+    setInput("");
+    onSearch("");
   };
 
   return (
-    <>
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="Search movies..."
-          value={input}
-          onChange={handleInputChange}
-          aria-label="Search movies"
-          className="search-input"
-        />
-        {input && (
-          <button className="clear-btn" onClick={handleClear} aria-label="Clear search" type="button">
-            &#x2715;
-          </button>
-        )}
-      </div>
+    <div className="search-bar">
+      <input
+        type="text"
+        placeholder="Search movies..."
+        value={input}
+        onChange={handleInputChange}
+        aria-label="Search movies"
+        className="search-input"
+      />
+      {input && (
+        <button
+          className="clear-btn"
+          onClick={handleClear}
+          aria-label="Clear search"
+          type="button"
+        >
+          &#x2715;
+        </button>
+      )}
       <style>{`
         .search-bar {
           position: relative;
           max-width: 400px;
-          margin: 1rem auto 2rem auto;
+          margin: 1rem auto 0.5rem auto;
           display: flex;
           align-items: center;
         }
@@ -76,7 +79,7 @@ function SearchBar({ onSearch }) {
           line-height: 1;
         }
       `}</style>
-    </>
+    </div>
   );
 }
 
