@@ -145,6 +145,8 @@ src/
 └── index.js
 
 
+Deployed link : https://subodh-1407-movie-search-app.vercel.app/
+
 
 👨‍💻 Author
 SUBODH GANGWAR
